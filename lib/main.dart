@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'features/profile/profile_page.dart';
+import 'features/progress/progress_page.dart';   // 👈 new
+// (DashboardPage and MealsPage are still simple stubs for now)
 
 void main() => runApp(const ProviderScope(child: NutriPulseApp()));
 
@@ -24,9 +26,9 @@ class NutriPulseApp extends StatelessWidget {
   }
 }
 
+/// Bottom-nav shell
 class _HomeShell extends StatefulWidget {
   const _HomeShell({super.key});
-
   @override
   State<_HomeShell> createState() => _HomeShellState();
 }
@@ -37,8 +39,8 @@ class _HomeShellState extends State<_HomeShell> {
   final _pages = const [
     DashboardPage(),
     MealsPage(),
-    ProgressPage(),
-    ProfilePage(), // ← profile tab
+    ProgressPage(), // ← real progress screen
+    ProfilePage(),
   ];
 
   @override
@@ -50,32 +52,30 @@ class _HomeShellState extends State<_HomeShell> {
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Home'),
           NavigationDestination(
-            icon: Icon(Icons.restaurant_menu_outlined),
-            selectedIcon: Icon(Icons.restaurant_menu),
-            label: 'Meals',
-          ),
+              icon: Icon(Icons.restaurant_menu_outlined),
+              selectedIcon: Icon(Icons.restaurant_menu),
+              label: 'Meals'),
           NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights),
-            label: 'Progress',
-          ),
+              icon: Icon(Icons.insights_outlined),
+              selectedIcon: Icon(Icons.insights),
+              label: 'Progress'),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profile'),
         ],
       ),
     );
   }
 }
 
-// ------------------------------ Stub pages -------------------------------
+// ------------------------------------------------------------------
+// Simple placeholder pages — replace when you build these features
+// ------------------------------------------------------------------
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
   @override
@@ -88,11 +88,4 @@ class MealsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       const Center(child: Text('Meals'));
-}
-
-class ProgressPage extends StatelessWidget {
-  const ProgressPage({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      const Center(child: Text('Progress'));
 }

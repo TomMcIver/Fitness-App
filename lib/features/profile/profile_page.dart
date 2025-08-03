@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/models.dart';
 import '../../models/user_profile.dart';
+import '../../models/measurement_entry.dart';          // <-- NEW
 import '../../core/providers.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -12,7 +13,7 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
-  // form controllers
+  //  form state 
   final _formKey   = GlobalKey<FormState>();
   Gender? _gender;
   final _weightCtl = TextEditingController();
@@ -28,9 +29,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     super.initState();
     _hydrate(ref.read(userProfileProvider));
 
-    _sub = ref.listenManual<UserProfile?>(userProfileProvider, (_, next) {
-      _hydrate(next);
-    });
+    _sub = ref.listenManual<UserProfile?>(
+      userProfileProvider,
+      (_, next) => _hydrate(next),
+    );
   }
 
   @override
@@ -44,7 +46,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     super.dispose();
   }
 
-  // ---- helpers -------------------------------------------------------------
+  //  helpers 
   void _hydrate(UserProfile? p) {
     if (p == null) return;
     setState(() {
@@ -77,42 +79,41 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  // ---- save ----------------------------------------------------------------
-  void _onSave() async {
+  //  save 
+  void _onSave() {
     if (!_formKey.currentState!.validate()) return;
 
-    final g = _gender!;
-    final weight = double.parse(_weightCtl.text);
-    final height = double.parse(_heightCtl.text);
-    final neck = double.parse(_neckCtl.text);
-    final waist = double.parse(_waistCtl.text);
+    final g       = _gender!;
+    final weight  = double.parse(_weightCtl.text);
+    final height  = double.parse(_heightCtl.text);
+    final neck    = double.parse(_neckCtl.text);
+    final waist   = double.parse(_waistCtl.text);
+    final hip     = g == Gender.female ? double.parse(_hipCtl.text) : null;
 
+    // update profile
     final notifier = ref.read(userProfileProvider.notifier);
-    
-    // Set basic info
     notifier.setBasicInfo(gender: g, weightKg: weight, heightCm: height);
-
-    // Update circumferences
-    notifier.updateCircumference('neck', neck);
+    notifier.updateCircumference('neck',  neck);
     notifier.updateCircumference('waist', waist);
-
     if (g == Gender.female) {
-      final hip = double.parse(_hipCtl.text);
-      notifier.updateCircumference('hip', hip);
+      notifier.updateCircumference('hip', hip!);
     } else {
-      // clear hip if previously set
       notifier.updateCircumference('hip', 0);
     }
 
-    // Force a state update to trigger dependent providers
-    await Future.delayed(const Duration(milliseconds: 100));
-    
-    // Refresh the providers to ensure calculations are updated
-    ref.invalidate(bmiProvider);
-    ref.invalidate(bodyFatProvider);
-    ref.invalidate(bodyFatCategoryProvider);
+    // push measurement into history for progress charts
+    final entry = MeasurementEntry(
+      dateTime : DateTime.now(),
+      weightKg : weight,
+      neckCm   : neck,
+      waistCm  : waist,
+      hipCm    : hip,
+      heightCm : height,
+      gender   : g,
+    );
+    ref.read(measurementHistoryProvider.notifier).addEntry(entry);
 
-    // create rough calorie goal if missing
+    // create rough calorie goal if none
     if (ref.read(nutritionGoalProvider) == null) {
       final kcal = (weight * 30).round();
       ref.read(nutritionGoalProvider.notifier).state = NutritionGoal(
@@ -127,7 +128,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         .showSnackBar(const SnackBar(content: Text('Profile saved ✔')));
   }
 
-  // ---- build ---------------------------------------------------------------
+  //  build 
   @override
   Widget build(BuildContext context) {
     final bmi   = ref.watch(bmiProvider)?.toStringAsFixed(1);
@@ -167,12 +168,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   const SizedBox(height: 12),
                   _numField(_heightCtl, label: 'Height (cm)', min: 100, max: 250),
                   const SizedBox(height: 12),
-                  _numField(_neckCtl,  label: 'Neck (cm)', min: 10, max: 100),
+                  _numField(_neckCtl,  label: 'Neck (cm)',  min: 10,  max: 100),
                   const SizedBox(height: 12),
-                  _numField(_waistCtl, label: 'Waist (cm)', min: 40, max: 200),
+                  _numField(_waistCtl, label: 'Waist (cm)', min: 40,  max: 200),
                   const SizedBox(height: 12),
                   if (isFemale)
-                    _numField(_hipCtl, label: 'Hip (cm)', min: 50, max: 200),
+                    _numField(_hipCtl, label: 'Hip (cm)',   min: 50,  max: 200),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     onPressed: _onSave,
@@ -189,7 +190,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 }
 
-// ---- metric card -----------------------------------------------------------
+//  metric card 
 class _MetricsCard extends StatelessWidget {
   final String? bmi, bodyFat, bodyFatCategory;
   const _MetricsCard({this.bmi, this.bodyFat, this.bodyFatCategory});

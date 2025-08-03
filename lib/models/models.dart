@@ -95,7 +95,7 @@ class NutritionGoal {
   });
 }
 
-/// helper for % progress vs goal
+// helper for % progress vs goal
 class MacroProgress {
   final double calories, protein, carbs, fat;
   const MacroProgress({required this.calories, required this.protein, required this.carbs, required this.fat});
